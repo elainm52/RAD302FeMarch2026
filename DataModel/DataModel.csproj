@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="CsvMapper\Books.csv" />
+    <None Remove="CsvMapper\MemberLoans.csv" />
+    <None Remove="CsvMapper\Members.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="CsvMapper\Books.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CsvMapper\MemberLoans.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CsvMapper\Members.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+	  <PackageReference Include="Tracker" Version="1.0.7-beta" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.13" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.13" />
+		  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.13" />
+		  <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.13" /> 
+  </ItemGroup>
+
+</Project>

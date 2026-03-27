@@ -1,0 +1,9 @@
+BookID,Title,ISBN,Author,LoanType,LoanDuration
+1,The Hunger Games,9780439023481,Suzanne Collins,General,28
+2,Nineteen Eighty-Four,1110141036141,George Orwell,General,28
+3,Brave New World,2220060929871,Aldous Huxley,Restricted,1
+4,The Hound of the Baskervilles,1234564389,Athur Conan Doyle,General,28
+5,Literary works of Leonardo da Vinci,123456789196,Leonardo da Vinci,Restricted,1
+6,The Arctic Incident,9780786851478,Eoin Colfer,General,28
+7,Physical chemistry,716720736,P. W. Atkins,Restricted,1
+8,Universe,716746476,Roger Freedman,General,28
