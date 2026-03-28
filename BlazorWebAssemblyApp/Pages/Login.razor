@@ -1,0 +1,114 @@
+@page "/login"
+@using ViewModels
+@using BlazorToastNotifications.Services
+@inject IHttpClientService _httpClientService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+@inject AppState _appState
+
+<PageTitle>Login</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Library Management Login</h4>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="@LoginModel" OnValidSubmit="@HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Email</label>
+                            <InputText id="username" class="form-control" placeholder="Enter your email" 
+                                @bind-Value="LoginModel.Username" />
+                            <ValidationMessage For="@(() => LoginModel.Username)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <InputText id="password" type="password" class="form-control" placeholder="Enter your password" 
+                                @bind-Value="LoginModel.Password" />
+                            <ValidationMessage For="@(() => LoginModel.Password)" />
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="rememberme" class="form-check-input" 
+                                @bind-Value="LoginModel.RememberMe" />
+                            <label class="form-check-label" for="rememberme">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" disabled="@IsLoading">
+                                @if (IsLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Logging in...</span>
+                                }
+                                else
+                                {
+                                    <span>Login</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-3" role="alert">
+                            @ErrorMessage
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="mt-3 text-center">
+                <p class="text-muted">Demo Credentials:</p>
+                <p class="small"><strong>Email:</strong> mmillian@itsligo.ie</p>
+                <p class="small"><strong>Password:</strong> LibAdmin$1</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginViewModel LoginModel = new LoginViewModel();
+    private bool IsLoading = false;
+    private string ErrorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+
+            bool loginSuccess = await _httpClientService.login(LoginModel.Username, LoginModel.Password);
+
+            if (loginSuccess)
+            {
+                _appState.LoggedIn = true;
+                _toastService.ShowToast("Login successful! Welcome to the Library Management System.", ToastLevel.Success);
+                await Task.Delay(1000);
+                _navigationManager.NavigateTo("/");
+            }
+            else
+            {
+                ErrorMessage = "Invalid email or password. Please try again.";
+                _toastService.ShowToast("Login failed. Please check your credentials.", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+            _toastService.ShowToast($"Error during login: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

@@ -1,0 +1,115 @@
+@page "/books"
+@using DataModel
+@using BlazorToastNotifications.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Head Librarian")]
+@inject IHttpClientService _httpClientService
+@inject ToastService _toastService
+
+<PageTitle>Book List</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Library Books</h1>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading books...</p>
+        </div>
+    }
+    else if (Books != null && Books.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Book ID</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>ISBN</th>
+                        <th>Loan Type</th>
+                        <th>Loan Duration</th>
+                        <th>On Loan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var book in Books)
+                    {
+                        <tr>
+                            <td>@book.BookID</td>
+                            <td>@book.Title</td>
+                            <td>@book.Author</td>
+                            <td>@book.ISBN</td>
+                            <td>
+                                @if (book.LoanType != null)
+                                {
+                                    <span class="badge bg-info">@book.LoanType.ToString()</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">None</span>
+                                }
+                            </td>
+                            <td>@book.LoanDuration days</td>
+                            <td>
+                                @if (book.IsOnLoan != null && book.IsOnLoan.Count > 0)
+                                {
+                                    <span class="badge bg-warning text-dark">Yes (@book.IsOnLoan.Count)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">No</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (!IsLoading && (Books == null || Books.Count == 0))
+    {
+        <div class="alert alert-info" role="alert">
+            No books found in the library.
+        </div>
+    }
+</div>
+
+@code {
+    private List<Book> Books = new List<Book>();
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            Books = await _httpClientService.getCollection<Book>("api/books");
+
+            if (Books != null && Books.Count > 0)
+            {
+                _toastService.ShowToast($"Successfully loaded {Books.Count} books.", ToastLevel.Success);
+            }
+            else
+            {
+                _toastService.ShowToast("No books available.", ToastLevel.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            _toastService.ShowToast($"Error loading books: {ex.Message}", ToastLevel.Error);
+            Books = new List<Book>();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}
