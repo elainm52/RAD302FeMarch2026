@@ -4,6 +4,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Tracker.WebAPIClient;
+using Microsoft.EntityFrameworkCore;
+using ApplicationDb.DataModel;
+using Microsoft.AspNetCore.Identity;
+using DataModel;
 
 namespace WebAPI
 {
@@ -15,6 +19,32 @@ namespace WebAPI
             // For CORS on localhost
             string LocalAllowSpecificOrigins = "_localAllowSpecificOrigins";
             // Add services to the container.
+
+            // Add ApplicationDbContext
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("ProgrammeDBConnection")));
+
+            // Add LibraryContext
+            builder.Services.AddDbContext<LibraryContext>(options =>
+                options.UseSqlServer("Data Source = (localdb)\\MSSQLLocalDB; Initial Catalog = RAD302fe2026db-S00250500"));
+
+            // Register BookRepository
+            builder.Services.AddScoped<IBookRepository<Book>, BookRepository>();
+
+            // Add Identity services
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
+
+            // Add ApplicationDbSeeder
+            builder.Services.AddScoped<ApplicationDbSeeder>();
 
             builder.Services.AddControllers().AddJsonOptions(options =>
             {
@@ -78,7 +108,13 @@ namespace WebAPI
             });
 
             var app = builder.Build();
-           
+
+            // Seed the database using scope factory pattern
+            using (var scope = app.Services.CreateScope())
+            {
+                var seeder = scope.ServiceProvider.GetRequiredService<ApplicationDbSeeder>();
+                seeder.Seed().Wait();
+            }
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

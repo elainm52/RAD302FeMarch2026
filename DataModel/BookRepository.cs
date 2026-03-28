@@ -9,46 +9,62 @@ namespace DataModel
 {
     public class BookRepository : IBookRepository<Book>
     {
+        private readonly LibraryContext _context;
+
+        public BookRepository(LibraryContext context)
+        {
+            _context = context;
+        }
+
         public void Add(Book entity)
         {
-            throw new NotImplementedException();
+            _context.Books.Add(entity);
+            _context.SaveChanges();
         }
 
         public void AddRange(IEnumerable<Book> entities)
         {
-            throw new NotImplementedException();
+            _context.Books.AddRange(entities);
+            _context.SaveChanges();
         }
 
         public IEnumerable<Book> Find(Expression<Func<Book, bool>> predicate)
         {
-            throw new NotImplementedException();
+            return _context.Books.Where(predicate).ToList();
         }
 
         public Book Get(int id)
         {
-            throw new NotImplementedException();
+            return _context.Books.FirstOrDefault(b => b.BookID == id);
         }
 
         public IEnumerable<Book> GetAll()
         {
-            throw new NotImplementedException();
+            return _context.Books.ToList();
         }
 
         public void Remove(Book entity)
         {
-            throw new NotImplementedException();
+            _context.Books.Remove(entity);
+            _context.SaveChanges();
         }
 
         public void RemoveRange(IEnumerable<Book> entities)
         {
-            throw new NotImplementedException();
+            _context.Books.RemoveRange(entities);
+            _context.SaveChanges();
         }
 
         // Return the member who has this book on loan or null if the book 
         // is not currently on loan
         public Member GetBookLoanee(int BookId)
         {
-            throw new NotImplementedException();
+            var loan = _context.Loans
+                .Where(l => l.BookID == BookId)
+                .Select(l => l.Member)
+                .FirstOrDefault();
+
+            return loan;
         }
     }
 }

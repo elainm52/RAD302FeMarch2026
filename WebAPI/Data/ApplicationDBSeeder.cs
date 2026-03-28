@@ -25,7 +25,50 @@ namespace ApplicationDb.DataModel
         }
         public async Task Seed()
         {
-         // Seed your application user and role here
+            // Seed Roles
+            await SeedRoles();
+
+            // Seed Application Users
+            await SeedApplicationUsers();
+        }
+
+        private async Task SeedRoles()
+        {
+            string[] roleNames = { "Head Librarian", "Librarian", "Member" };
+
+            foreach (var roleName in roleNames)
+            {
+                var roleExists = await _roleManager.RoleExistsAsync(roleName);
+                if (!roleExists)
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(roleName));
+                }
+            }
+        }
+
+        private async Task SeedApplicationUsers()
+        {
+            // Check if Margaret Millan already exists
+            var existingUser = await _userManager.FindByEmailAsync("mmilan@itsligo.ie");
+            if (existingUser == null)
+            {
+                var margaretMillan = new ApplicationUser
+                {
+                    UserName = "mmilan@itsligo.ie",
+                    Email = "mmilan@itsligo.ie",
+                    Firstname = "Margaret",
+                    Lastname = "Millan",
+                    EmailConfirmed = true
+                };
+
+                var result = await _userManager.CreateAsync(margaretMillan, "LibAdmin$1");
+
+                if (result.Succeeded)
+                {
+                    // Add user to Head Librarian role
+                    await _userManager.AddToRoleAsync(margaretMillan, "Head Librarian");
+                }
+            }
         }
     }
 }

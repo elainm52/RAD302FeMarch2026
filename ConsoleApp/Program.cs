@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using DataServices;
 using System.Net.Http;
 using System.Net.Http.Json;
+using ViewModels;
 
 namespace ConsoleApp
 {
@@ -11,84 +12,106 @@ namespace ConsoleApp
     {
         static async Task Main(string[] args)
         {
-            // Track that this app is making an authorised call to the Web API
-            ActivityAPIClient.Track(StudentID: "S00250500", StudentName: "Elain Polakova", activityName: "Rad302 FE 2026", Task: "Authorised calling to Web API");
+            ActivityAPIClient.Track(StudentID: "S00250500", StudentName: "Your Name", activityName: "Rad302 FE 2026", Task: "Calling Of Web API");
 
-            // Create HttpClient pointed at the WebAPI
-            var httpClient = new HttpClient()
+            // Create HttpClient for Web API
+            using (HttpClient httpClient = new HttpClient())
             {
-                BaseAddress = new Uri("https://localhost:7072/")
-            };
+                httpClient.BaseAddress = new Uri("https://localhost:7072/");
 
-            // Create the generic HttpClientService from the RAD302GenericDataService project
-            // Pass null for ILocalStorageService in a console app (not required here)
-            var clientService = new HttpClientService(httpClient, null);
+                // Create HttpClientService
+                HttpClientService httpClientService = new HttpClientService(httpClient, null);
 
-            // Login with Margaret Millan's credentials and obtain a token
-            Console.WriteLine("Logging in as mmillian@itsligo.ie...");
-            var loginResult = await clientService.login("mmillian@itsligo.ie", "LibAdmin$1");
-            if (!loginResult)
-            {
-                Console.WriteLine("Login failed. Exiting.");
-                return;
-            }
+                Console.WriteLine("\n Authenticate Web API Key \n");
 
-            // Retrieve and display token (if stored)
-            var token = await clientService.GetTokenAsync();
-            if (token != null)
-                Console.WriteLine($"Obtained token: {token.AccessToken.Substring(0, Math.Min(50, token.AccessToken.Length))}...");
+                // Login using Margaret Millan's credentials
+                bool loginSuccess = await httpClientService.login("mmilan@itsligo.ie", "LibAdmin$1");
 
-            // Get a list of all books from the API
-            Console.WriteLine("Retrieving list of books...");
-            var books = await clientService.getCollection<Book>("api/books");
-            Console.WriteLine($"Found {books.Count} books:");
-            foreach (var b in books)
-            {
-                Console.WriteLine($"- [{b.BookID}] {b.Title} by {b.Author} (ISBN: {b.ISBN})");
-            }
+                if (loginSuccess)
+                {
+                    Console.WriteLine("✓ Authentication successful!");
+                    Console.WriteLine($"Token: {httpClientService.UserToken.Substring(0, Math.Min(50, httpClientService.UserToken.Length))}...\n");
 
-            // Get a loanee for a book that is known to be out on loan (use book id 1 if seeded)
-            int loanedBookId = 1;
-            Console.WriteLine($"Retrieving loanee for book id {loanedBookId}...");
-            try
-            {
-                var loanee = await httpClient.GetFromJsonAsync<Member>($"api/books/{loanedBookId}/loanee");
-                if (loanee != null)
-                    Console.WriteLine($"Book {loanedBookId} is loaned to: {loanee.FirstName} {loanee.SecondName}");
+                    // Get all books from the Web API
+                    Console.WriteLine(" Fetch All Books \n");
+
+                    try
+                    {
+                        var books = await httpClientService.getCollection<Book>("api/books");
+
+                        if (books != null && books.Count > 0)
+                        {
+                            Console.WriteLine($"Total Books in Library: {books.Count}\n");
+
+                            // Get books currently out on loan from local database
+                            using (LibraryContext context = new LibraryContext())
+                            {
+                                var booksOnLoan = context.Loans
+                                    .Select(l => l.BookID)
+                                    .Distinct()
+                                    .ToList();
+
+                                Console.WriteLine("Books Out on Loan \n");
+
+                                foreach (var book in books)
+                                {
+                                    bool isOnLoan = booksOnLoan.Contains(book.BookID);
+                                    string loanStatus = isOnLoan ? "[ ON LOAN ]" : "[ AVAILABLE ]";
+
+                                    Console.WriteLine($"{loanStatus} ID: {book.BookID}");
+                                    Console.WriteLine($"  Title: {book.Title}");
+                                    Console.WriteLine($"  Author: {book.Author}");
+                                    Console.WriteLine($"  ISBN: {book.ISBN}");
+                                    Console.WriteLine($"  Type: {book.LoanType} (Duration: {book.LoanDuration} days)");
+                                    Console.WriteLine("-------------------------------------------");
+                                }
+
+                                // Display detailed information for books on loan
+                                Console.WriteLine("\n Loan Info\n");
+
+                                var loansDetail = context.Loans
+                                    .Include(l => l.Book)
+                                    .Include(l => l.Member)
+                                    .OrderBy(l => l.Book.Title)
+                                    .ToList();
+
+                                if (loansDetail.Count == 0)
+                                {
+                                    Console.WriteLine("No books are currently out on loan.");
+                                }
+                                else
+                                {
+                                    foreach (var loan in loansDetail)
+                                    {
+                                        Console.WriteLine($"Book: {loan.Book.Title}");
+                                        Console.WriteLine($"Author: {loan.Book.Author}");
+                                        Console.WriteLine($"Borrowed by: {loan.Member.FirstName} {loan.Member.SecondName}");
+                                        Console.WriteLine($"Loan Date: {loan.LoanIssueDate:dd/MM/yyyy}");
+                                        Console.WriteLine($"Loan Duration: {loan.Book.LoanDuration} days");
+                                        Console.WriteLine("-------------------------------------------");
+                                    }
+                                    Console.WriteLine($"\nTotal Books Out on Loan: {loansDetail.Count}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("No books found or unable to retrieve books from Web API.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error retrieving books from Web API: {ex.Message}");
+                    }
+                }
                 else
-                    Console.WriteLine($"No loanee found for book {loanedBookId}.");
+                {
+                    Console.WriteLine("✗ Authentication failed!");
+                    Console.WriteLine($"Status: {httpClientService.UserStatus}");
+                    Console.WriteLine($"Error: {httpClientService.UserToken}");
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting loanee: {ex.Message}");
-            }
-
-            // Add a new book to the collection
-            var newBook = new Book
-            {
-                BookID = 9,
-                Title = "Blazor Trails",
-                ISBN = "716746476",
-                Author = "Tom Parsons",
-                LoanType = LoanType.Restricted,
-                LoanDuration = 1
-            };
-
-            Console.WriteLine("Adding new book: Blazor Trails...");
-            try
-            {
-                var added = await clientService.Post<Book>("api/books", newBook);
-                if (added != null)
-                    Console.WriteLine($"Added book with id {added.BookID}: {added.Title}");
-                else
-                    Console.WriteLine("Failed to add book or no response returned.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding book: {ex.Message}");
-            }
-
-            Console.WriteLine("Done.");
         }
     }
 }
+

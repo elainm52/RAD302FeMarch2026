@@ -12,7 +12,7 @@ namespace ApplicationDb.DataModel
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            var myconnectionstring = "Data Source = (localdb)\\MSSQLLocalDB; Initial Catalog = RAD302fe2026-ppowell";
+            var myconnectionstring = "Data Source = (localdb)\\MSSQLLocalDB; Initial Catalog = RAD302fe2026-S00250500";
             optionsBuilder.UseSqlServer(myconnectionstring);
 
             base.OnConfiguring(optionsBuilder);
